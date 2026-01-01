@@ -1,6 +1,6 @@
 Example
 
-```commonlisp
+```lisp
 (ql:quickload '(:clack :ningle :clack-dirs))
 
 (defparameter *app* nil)
