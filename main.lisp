@@ -55,7 +55,7 @@
 
 (defun directory-namestring% (pathname)
   "Return the dir name from the full pathname."
-  (car (last (split "\/" (directory-namestring pathname)))))
+  (car (last (split "\/" (string-trim '(#\/) (directory-namestring pathname))))))
 
 (defun encode-path-for-url (path)
   (let* ((segments (split "/" path))
