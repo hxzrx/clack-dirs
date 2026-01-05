@@ -1,7 +1,7 @@
 Example
 
 ```lisp
-(ql:quickload '(:clack :ningle :clack-dirs))
+(ql:quickload '(:clack :clack-handler-hunchentoot :clack-dirs))
 
 (defparameter *app* nil)
 (defvar *server-handler* nil
