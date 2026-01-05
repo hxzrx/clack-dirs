@@ -120,13 +120,11 @@
 
 (defun directory-listing-handler (root-dir uri params)
   "Handler for the requests to list the directory."
-  (let* ((relative-path-str (or (car (cdr (assoc :splat params))) ""))
-         (relative-path-decoded (handler-case (url-decode relative-path-str)
-                                  (error () relative-path-str)))
+  (let* ((relative-path (or (car (cdr (assoc :splat params))) ""))
          (normalized-root-dir (pathname-as-directory root-dir))
-         (relative-path-pn (if (string= "" relative-path-decoded)
+         (relative-path-pn (if (string= "" relative-path)
                                nil
-                               (pathname-as-directory relative-path-decoded)))
+                               (pathname-as-directory relative-path)))
          (absolute-path (if relative-path-pn
                             (merge-pathnames-as-directory normalized-root-dir relative-path-pn)
                             normalized-root-dir)))
@@ -141,15 +139,13 @@
                (list (render-directory-listing
                       root-dir
                       uri
-                      relative-path-decoded
+                      relative-path
                       absolute-path
                       files))))))))
 
 (defun file-download-handler (root-dir uri params)
   "Handler for the requests to download the file."
-  (let* ((relative-path-raw (car (cdr (assoc :splat params))))
-         (relative-path (handler-case (url-decode relative-path-raw)
-                          (error () relative-path-raw)))
+  (let* ((relative-path (car (cdr (assoc :splat params))))
          (absolute-path (merge-pathnames relative-path root-dir)))
     (cond
       ((not (probe-file absolute-path))
