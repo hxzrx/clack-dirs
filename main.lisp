@@ -182,36 +182,37 @@
   (declare (ignore params))
   t)
 
-(defun serve-directory (app root-dir uri)
+(defun serve-directory (app serve-dir uri)
   "uri: string, should begin with a slash and cannot end with slash."
-  ;; route1: listing directories (match all paths end with '/', or empty paths), eg. /files/, /files/sub/
-  (setf (ningle:route app (format nil "~d/*/" uri))
-        #'(lambda (params)
+  (let ((root-dir (truename serve-dir))) ; expand tilde path such as "~/bin"
+    ;; route1: listing directories (match all paths end with '/', or empty paths), eg. /files/, /files/sub/
+    (setf (ningle:route app (format nil "~d/*/" uri))
+          #'(lambda (params)
+              (let ((passedp (verify-auth params)))
+                (if passedp
+                    (funcall #'directory-listing-handler root-dir uri params)
+                    (progn
+                      (setf (lack.response:response-status ningle:*response*) 401)
+                      *401-content*)))))
+    ;; route 2: download a file (the paths not end with '/'), eg. /files/file.txt, /files/sub/file.txt
+    (setf (ningle:route app (format nil "~d/*" uri))
+          #'(lambda (params)
+              (let ((passedp (verify-auth params)))
+                (if passedp
+                    (funcall #'file-download-handler root-dir uri params)
+                    (progn
+                      (setf (lack.response:response-status ningle:*response*) 401)
+                      *401-content*)))))
+    ;; route 3: the root of the directory
+    (setf (ningle:route app (format nil "~d" uri))
+          (lambda (params)
             (let ((passedp (verify-auth params)))
               (if passedp
-                  (funcall #'directory-listing-handler root-dir uri params)
+                  (progn
+                    (setf (lack.response:response-status ningle:*response*) 302
+                          (lack.response:response-headers ningle:*response*) `(:location ,(format nil "~d/" uri)))
+                    nil)
                   (progn
                     (setf (lack.response:response-status ningle:*response*) 401)
                     *401-content*)))))
-  ;; route 2: download a file (the paths not end with '/'), eg. /files/file.txt, /files/sub/file.txt
-  (setf (ningle:route app (format nil "~d/*" uri))
-        #'(lambda (params)
-            (let ((passedp (verify-auth params)))
-              (if passedp
-                  (funcall #'file-download-handler root-dir uri params)
-                  (progn
-                    (setf (lack.response:response-status ningle:*response*) 401)
-                    *401-content*)))))
-  ;; route 3: the root of the directory
-  (setf (ningle:route app (format nil "~d" uri))
-        (lambda (params)
-          (let ((passedp (verify-auth params)))
-            (if passedp
-                (progn
-                  (setf (lack.response:response-status ningle:*response*) 302
-                        (lack.response:response-headers ningle:*response*) `(:location ,(format nil "~d/" uri)))
-                  nil)
-                (progn
-                  (setf (lack.response:response-status ningle:*response*) 401)
-                  *401-content*)))))
-  (values app))
+    (values app)))
